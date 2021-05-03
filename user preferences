@@ -1,0 +1,75 @@
+#**Load Libraries**
+
+import numpy as np
+import pandas as pd
+
+#**Dataset Loading**
+
+#Credits Data File
+
+df1 = pd.read_csv('tmdb_5000_credits.csv')
+#df1.head()
+#print("Shape of Credits dataset")
+#df1.shape
+df1.info()
+
+#Movies Data File
+
+df2 = pd.read_csv('tmdb_5000_movies.csv')
+#df2.head()
+df2.info()
+
+**Merging Data Files**
+
+df1.columns= ['id', 'title', 'cast', 'crew']
+df2 = df2.merge(df1, on = 'id')
+#df2.head()
+df2.columns
+'''
+**Processing**
+
+Weighted Rating (WR) = (v/ v + m .R) + (v/ v + m .C)
+
+where,
+
+**v** is the number of votes for the movie,
+**m** is the minimum votes required to be listed in the chart;
+**R** is the average rating of the movie; and
+**C** is the mean vote across the whole report
+'''
+C = df2['vote_average'].mean()
+#C
+
+**Minimum votes to be listed**
+
+m = df2['vote_count']. quantile(0.9)
+#m
+
+**Getting list of movies to be listed**
+
+lists_movies = df2.copy().loc[df2['vote_count'] >= m]
+lists_movies.shape
+
+#There are 481 movies which qualify to be in this list. Let us calculate our metric for each qualified movies
+
+#**Defining a function **
+
+def weighted_rating (x, m=m, C=C):
+  v = x['vote_count']
+  R = x['vote_average']
+  # Calcultation based on formula and (m = 1838, c= 6.09)
+  return (v/(v+m) * R) + (m/(m+v) * C)
+
+# Define a new feature 'score' and calculate its value with weighted rating
+lists_movies['score'] = lists_movies.apply(weighted_rating, axis= 1)
+
+#lists_movies.head(3)
+lists_movies.shape
+
+#**Sorting the Movies**
+
+# sort movies based on score calculated 
+lists_movies = lists_movies.sort_values('score', ascending=False)
+
+# Print top 10 movies
+lists_movies[['title_x', 'vote_count', 'vote_average', 'score']].head(10)
